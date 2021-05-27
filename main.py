@@ -6,11 +6,31 @@ class Bird():
     def __init__(self):
         self.sc = pg.display.set_mode((400,700))
         self.bird = pg.Rect(65,50,50,50)
-        self.bg = pg.Surface((400,700))
-        self.birds = pg.Surface((40,40))
-        self.wallUp = pg.Surface((80,400))
-        self.wallDown = pg.Surface((80,400))
-        self.gap = 125
+
+        self.bg = pg.image.load('C:\FlappyBird\Background.png')
+        self.bg = pg.transform.scale(self.bg, (400,700))
+
+        self.birds = pg.image.load('C:\FlappyBird\Bird123.png')
+        self.birds.set_colorkey((255,0,255))
+        self.birds =  pg.transform.scale(self.birds, (50,40))
+        self.birds = self.birds.convert()
+
+        self.wallUp =  pg.image.load('C:\FlappyBird\Column1.png')
+        self.wallDown =  pg.image.load('C:\FlappyBird\Column1.png')
+
+        self.wallUp.set_colorkey((255,255,255))
+        self.wallUp =  pg.transform.scale(self.wallUp, (80,420))
+        self.wallUp = self.wallUp.convert()
+
+        self.wallDown.set_colorkey((255,255,255))
+        self.wallDown =  pg.transform.scale(self.wallDown, (80,420))
+        self.wallDown = self.wallDown.convert()
+
+
+
+
+
+        self.gap = 135
         self.wallX = 400
         self.birdY = 350
         self.jump = 0
@@ -46,10 +66,9 @@ class Bird():
                         self.wallDown.get_width() - 10,
                         self.wallDown.get_height()
                         )
-        if upRect.colliderect(self.bird):
+        if upRect.colliderect(self.bird) or downRect.colliderect(self.bird):
             self.dead = True
-        if downRect.colliderect(self.bird):
-            self.dead = True
+            self.gravity = 5
 
         if not 0 < self.bird[1] < 720:
             self.bird[1] = 50
@@ -58,7 +77,8 @@ class Bird():
             self.counter = 0
             self.wallX = 400
             self.offset = random.randint(-135,135)
-            self.gravity = 5
+
+
 
     def run(self):
         clock = pg.time.Clock()
@@ -70,12 +90,14 @@ class Bird():
                 if i.type == pg.QUIT:
                     sys.exit()
                 if (i.type == pg.KEYDOWN or i.type == pg.MOUSEBUTTONUP) and not self.dead:
-                    self.jump = 17
+                    self.jump = 200
                     self.gravity = 5
-                    self.jumpSpeed = 10
+                    self.jumpSpeed = 15
+                elif self.dead:
+                    self.gravity = 5
 
+            self.sc.blit(self.bg, (0,0))
 
-            self.sc.fill((255,255,255))
             self.sc.blit(self.wallUp,
                          (self.wallX, 360 + self.gap - self.offset))
             self.sc.blit(self.wallDown,
