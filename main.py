@@ -1,33 +1,29 @@
 import pygame as pg
 import sys
 import random
+from os import path
+
+img_dir = path.join(path.dirname(__file__), 'assets')
 
 class Bird():
     def __init__(self):
         self.sc = pg.display.set_mode((400,700))
-        self.bird = pg.Rect(65,50,50,50)
+        self.bird = pg.Rect(65,50,50,40)
 
-        self.bg = pg.image.load('C:\FlappyBird\Background.png')
+        self.bg = pg.image.load(path.join(img_dir, "Background.png"))
         self.bg = pg.transform.scale(self.bg, (400,700))
 
-        self.birds = pg.image.load('C:\FlappyBird\Bird123.png')
+        self.birds = pg.image.load(path.join(img_dir, "Bird1.png")).convert()
         self.birds.set_colorkey((255,0,255))
         self.birds =  pg.transform.scale(self.birds, (50,40))
-        self.birds = self.birds.convert()
 
-        self.wallUp =  pg.image.load('C:\FlappyBird\Column1.png')
-        self.wallDown =  pg.image.load('C:\FlappyBird\Column1.png')
+        self.wallUp =  pg.image.load(path.join(img_dir, "Column1.png")).convert()
+        self.wallDown =  pg.image.load(path.join(img_dir, "Column1.png")).convert()
 
         self.wallUp.set_colorkey((255,255,255))
         self.wallUp =  pg.transform.scale(self.wallUp, (80,420))
-        self.wallUp = self.wallUp.convert()
-
         self.wallDown.set_colorkey((255,255,255))
         self.wallDown =  pg.transform.scale(self.wallDown, (80,420))
-        self.wallDown = self.wallDown.convert()
-
-
-
 
 
         self.gap = 135
