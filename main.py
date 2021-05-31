@@ -3,108 +3,174 @@ import sys
 import random
 from os import path
 
-img_dir = path.join(path.dirname(__file__), 'assets')
+img_dir = path.join(path.dirname(__file__), 'img')
+snd_dir = path.join(path.dirname(__file__), 'snd')
 
-class Bird():
+WIDTH = 400
+HEIGHT = 700
+FPS = 60
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
+PURPLE = (255,0,255)
+
+pg.init()
+pg.mixer.init()
+screen = pg.display.set_mode((WIDTH, HEIGHT))
+pg.display.set_caption("Flappy Bird!")
+clock = pg.time.Clock()
+
+font_name = pg.font.match_font('arial')
+
+def draw_text(surf, text, size, x, y):
+    font = pg.font.Font(font_name, size)
+    text_surface = font.render(text, True, RED)
+    text_rect = text_surface.get_rect()
+    text_rect.midtop = (x, y)
+    surf.blit(text_surface, text_rect)
+
+class Bird(pg.sprite.Sprite):
     def __init__(self):
-        self.sc = pg.display.set_mode((400,700))
-        self.bird = pg.Rect(65,50,50,40)
+        pg.sprite.Sprite.__init__(self)
 
-        self.bg = pg.image.load(path.join(img_dir, "Background.png"))
-        self.bg = pg.transform.scale(self.bg, (400,700))
+        self.image = pg.image.load(path.join(img_dir, "Bird1.png")).convert()
+        self.image.set_colorkey(PURPLE)
+        self.image =  pg.transform.scale(self.image, (50,40))
 
-        self.birds = pg.image.load(path.join(img_dir, "Bird1.png")).convert()
-        self.birds.set_colorkey((255,0,255))
-        self.birds =  pg.transform.scale(self.birds, (50,40))
+        self.sprites = [pg.transform.rotate(self.image, 25),pg.transform.rotate(self.image, -25)]
 
-        self.wallUp =  pg.image.load(path.join(img_dir, "Column1.png")).convert()
-        self.wallDown =  pg.image.load(path.join(img_dir, "Column1.png")).convert()
+        self.rect = self.image.get_rect()
+        self.rect.x = 50
+        self.rect.y = 40
 
-        self.wallUp.set_colorkey((255,255,255))
-        self.wallUp =  pg.transform.scale(self.wallUp, (80,420))
-        self.wallDown.set_colorkey((255,255,255))
-        self.wallDown =  pg.transform.scale(self.wallDown, (80,420))
-
-
-        self.gap = 135
-        self.wallX = 400
+        self.dead = False
         self.birdY = 350
         self.jump = 0
-        self.jumpSpeed = 10
+        self.jumpSpeed = 15
+        self.gravity = 5
+        self.gravity_k = 0.2
+
+        self.snd_indx = False
+
+    def jump_set(self):
+        bird.jump = 30
+        bird.gravity = 5
+        bird.jumpSpeed = 15
+    def dead_act(self):
+        self.rect.y = 50
+        self.birdY = 50
         self.gravity = 5
         self.dead = False
-        self.sprite = 0
-        self.counter = 0
-        self.offset = random.randint(-110,110)
+        for i in columns:
+            i.start()
+            i.score = 0
+        self.snd_indx = False
 
-    def updateWalls(self):
-        self.wallX -= 2
-        if self.wallX < -80:
-            self.wallX = 400
-            self.counter += 1
-            self.offset = random.randint(-110,110)
-    def updateBird(self):
+    def update(self):
         if self.jump:
             self.jumpSpeed -= 1
             self.birdY -= self.jumpSpeed
             self.jump -= 1
+            self.image = self.sprites[0]
         else:
             self.birdY += self.gravity
-            self.gravity += 0.2
-        self.bird[1] = self.birdY
-        upRect = pg.Rect(self.wallX,
-                        360 + self.gap - self.offset + 10,
-                        self.wallUp.get_width()-10,
-                        self.wallUp.get_height()
-                        )
-        downRect = pg.Rect(self.wallX,
-                        0 - self.gap - self.offset - 10,
-                        self.wallDown.get_width() - 10,
-                        self.wallDown.get_height()
-                        )
-        if upRect.colliderect(self.bird) or downRect.colliderect(self.bird):
-            self.dead = True
-            self.gravity = 5
+            self.gravity += self.gravity_k
+            self.image = self.sprites[1]
+        self.rect.y = self.birdY
 
-        if not 0 < self.bird[1] < 720:
-            self.bird[1] = 50
-            self.birdY = 50
-            self.dead = False
-            self.counter = 0
-            self.wallX = 400
-            self.offset = random.randint(-135,135)
+        if self.rect.y > 700 or self.rect.y < 0:
+            self.dead_act()
 
+class Column(pg.sprite.Sprite):
+    def __init__(self, side):
+        pg.sprite.Sprite.__init__(self)
 
+        self.score = 0
 
-    def run(self):
-        clock = pg.time.Clock()
-        pg.font.init()
-        font = pg.font.SysFont('Arial', 50)
-        while 1:
-            clock.tick(60)
-            for i in pg.event.get():
-                if i.type == pg.QUIT:
-                    sys.exit()
-                if (i.type == pg.KEYDOWN or i.type == pg.MOUSEBUTTONUP) and not self.dead:
-                    self.jump = 200
-                    self.gravity = 5
-                    self.jumpSpeed = 15
-                elif self.dead:
-                    self.gravity = 5
+        self.side = side
+        self.gap = 135
+        self.offset = random.randint(65,110)
+        self.wallx_start = 400
 
-            self.sc.blit(self.bg, (0,0))
+        self.image = pg.image.load(path.join(img_dir, "Column1.png")).convert()
+        self.image.set_colorkey(WHITE)
+        self.image =  pg.transform.scale(self.image, (80,420))
 
-            self.sc.blit(self.wallUp,
-                         (self.wallX, 360 + self.gap - self.offset))
-            self.sc.blit(self.wallDown,
-                         (self.wallX, 0 - self.gap - self.offset))
-            self.sc.blit(font.render(str(self.counter), -1, (255,0,0)), (200,50))
-            self.sc.blit(self.birds, (65 , self.birdY ))
+        self.rect = self.image.get_rect()
+
+        self.start()
+
+    def update(self):
+        self.rect.x -= 2
+        if self.rect.x < -80:
+            self.score += 1
+            point_snd.play()
+            self.start()
+    def start(self):
+        self.offset = random.randint(65,110)
+        if self.side == "top":
+            self.rect.y = 360 + self.gap - self.offset + 10
+        elif self.side == "bot":
+            self.rect.y = 0 - self.gap - self.offset - 1
+
+        self.rect.x = self.wallx_start
 
 
-            self.updateWalls()
-            self.updateBird()
-            pg.display.update()
+background = pg.image.load(path.join(img_dir, "Background.png")).convert()
+background = pg.transform.scale(background, (400,700))
+background_rect = background.get_rect()
 
-ex = Bird()
-ex.run()
+all_sprites = pg.sprite.Group()
+columns = pg.sprite.Group()
+
+for i in ["top","bot"]:
+    column = Column(i)
+    all_sprites.add(column)
+    columns.add(column)
+
+bird = Bird()
+all_sprites.add(bird)
+
+hit_snd = pg.mixer.Sound(path.join(snd_dir, 'hit.mp3'))
+point_snd = pg.mixer.Sound(path.join(snd_dir, 'point.mp3'))
+wing_snd = pg.mixer.Sound(path.join(snd_dir, 'wing.mp3'))
+
+pg.mixer.music.load(path.join(snd_dir, 'music.ogg'))
+pg.mixer.music.set_volume(0.4)
+
+pg.mixer.music.play(loops=-1)
+running = True
+while running:
+    # Держим цикл на правильной скорости
+    clock.tick(FPS)
+    # Ввод процесса (события)
+    for event in pg.event.get():
+        # check for closing window
+        if event.type == pg.QUIT:
+            running = False
+        if (event.type == pg.KEYDOWN or event.type == pg.MOUSEBUTTONUP) and not bird.dead:
+            bird.jump_set()
+            wing_snd.play()
+    # Обновление
+    all_sprites.update()
+
+    hits = pg.sprite.spritecollide(bird , columns, False)
+    if hits:
+        bird.dead = True
+        if not bird.snd_indx:
+            hit_snd.play()
+            bird.snd_indx = True
+
+    # Рендеринг
+    screen.fill(BLACK)
+    screen.blit(background, background_rect)
+    all_sprites.draw(screen)
+    draw_text(screen, str(column.score),  45, WIDTH / 2, 10)
+    # После отрисовки всего, переворачиваем экран
+    pg.display.flip()
+
+pg.quit()
