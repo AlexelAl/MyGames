@@ -1,2 +1,2 @@
-# FlappyBird
+# Games 
 Simple app on pygame 
