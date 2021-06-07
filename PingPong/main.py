@@ -8,7 +8,7 @@ snd_dir = path.join(path.dirname(__file__), 'snd')
 
 WIDTH = 600
 HEIGHT = 450
-FPS = 50
+FPS = 100
 
 # Задаем цвета
 WHITE = (255, 255, 255)
@@ -18,15 +18,20 @@ GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 YELLOW = (255, 255, 0)
 
-delay = True
-goal = False
-
 # Создаем игру и окно
 pg.init()
 pg.mixer.init()
 screen = pg.display.set_mode((WIDTH, HEIGHT))
 pg.display.set_caption("Ping Pong")
 clock = pg.time.Clock()
+pg.mouse.set_visible(False)
+
+cursor_img = pg.image.load(path.join(img_dir, "cursor1.png")).convert()
+cursor_img.set_colorkey(BLACK)
+cursor_rect = cursor_img.get_rect()
+
+
+
 
 font_name = pg.font.match_font('arial')
 def draw_text(surf, text, size, x, y, color):
@@ -35,6 +40,13 @@ def draw_text(surf, text, size, x, y, color):
     text_rect = text_surface.get_rect()
     text_rect.midtop = (x, y)
     surf.blit(text_surface, text_rect)
+
+def mouse_handler():
+    mouse_k = pg.mouse.get_pos()
+    if not (mouse_k[0]+2>=WIDTH or mouse_k[1]+2>=HEIGHT or mouse_k[0]<=0 or mouse_k[1]<=0)and not delay:
+            cursor_rect.center = mouse_k
+            screen.blit(cursor_img, cursor_rect)
+
 def show_go_screen():
     screen.fill(BLACK)
     draw_text(screen, "PING PONG!", 64, WIDTH / 2, HEIGHT / 4, BLUE)
@@ -46,13 +58,21 @@ def show_go_screen():
         clock.tick(FPS)
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                pg.quit()
+                sys.exit()
             if event.type == pg.MOUSEBUTTONUP and solo_but.collidepoint(pg.mouse.get_pos()):
                 waiting = False
                 return 2
             if event.type == pg.MOUSEBUTTONUP and duo_but.collidepoint(pg.mouse.get_pos()):
                 waiting = False
                 return 0
+        screen.fill(BLACK)
+        draw_text(screen, "PING PONG!", 64, WIDTH / 2, HEIGHT / 4, BLUE)
+        solo_but = create_button(screen,WIDTH//2,HEIGHT//2,   BLACK,"solo_but.png")
+        duo_but = create_button( screen,WIDTH//2,HEIGHT//2+60,BLACK,"duo_but.png")
+
+        mouse_handler()
+
+        pg.display.flip()
 def create_button(surface,x,y,colorkey,img):
     but_img = pg.image.load(path.join(img_dir, img)).convert()
     but_img.set_colorkey(colorkey)
@@ -80,17 +100,17 @@ class Paddle(pg.sprite.Sprite):
         keystate = pg.key.get_pressed()
         condition = [0,0]
 
-        if self.state == 0:
+        if self.state == 1:
             condition[0] = keystate[pg.K_UP]
             condition[1] = keystate[pg.K_DOWN]
-        elif self.state == 1:
+        elif self.state == 0:
             condition[0] = keystate[pg.K_w]
             condition[1] = keystate[pg.K_s]
 
         if condition[0]:
-            self.speedy -= 10
+            self.speedy -= 5
         if condition[1]:
-            self.speedy += 10
+            self.speedy += 5
         self.rect.y += self.speedy
         if self.state == 2:
             if ball.rect.centery - 10 > self.rect.centery:
@@ -141,18 +161,19 @@ class Ball(pg.sprite.Sprite):
             self.respawn()
             goal = True
         if abs(self.speedx) < 25:
-            self.speedx *= 1.001
+            self.speedx *= 1.0005
 
     def respawn(self):
-        global delay
+        global delay, time_delay
+        time_delay = 0.8
 
         for i in Paddles:
             i.rect.centery = HEIGHT // 2
         self.rect = self.image.get_rect()
         self.rect.center = (WIDTH//2,HEIGHT//2)
 
-        self.speedx = random.choice([-3.5,3.5])
-        self.speedy = random.randrange(-10,10)
+        self.speedx = random.choice([-1.75,1.75])
+        self.speedy = random.randrange(-5,5)
 
         delay = True
 
@@ -171,6 +192,10 @@ for i in ['game_win1.png','game_win2.png']:
 pg.mixer.music.load(path.join(snd_dir, 'music.mp3'))
 pg.mixer.music.set_volume(0.09)
 pg.mixer.music.play(loops=-1)
+
+time_delay = 0.8
+delay = False
+goal = False
 
 game_over = True
 running = True
@@ -194,6 +219,7 @@ while running:
         ball = Ball()
         all_sprites.add(ball)
         game_over = False
+        goal = False
     # Держим цикл на правильной скорости
     clock.tick(FPS)
     # Ввод процесса (события)
@@ -219,14 +245,20 @@ while running:
         goal = False
     if ball.score_f >= 5:
         screen.blit(win_img[0],(0,0))
+        game_won_snd.play()
         game_over = True
+        time_delay = 0.5
     elif ball.score_s >= 5:
         screen.blit(win_img[1],(0,0))
+        game_won_snd.play()
         game_over = True
+        time_delay = 0.5
+
+    mouse_handler()
     # После отрисовки всего, переворачиваем экран
     pg.display.flip()
     if delay:
-        clock.tick(0.8)
+        clock.tick(time_delay)
         delay = False
 
 pg.quit()
